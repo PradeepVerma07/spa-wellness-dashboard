@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Aura Wellness Spa
 
-## Getting Started
+Premium full-stack SPA and admin dashboard for a spa, wellness, beauty, salon, therapy, ecommerce, project, and service-based business.
 
-First, run the development server:
+## Stack
+
+- Next.js App Router, React, TypeScript
+- Tailwind CSS v4
+- GSAP ScrollTrigger and Framer Motion transitions
+- Next route handlers for backend APIs
+- File-backed CMS store for local development at `data/cms.json`
+- MySQL production schema at `database/mysql-schema.sql`
+
+## Run
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev -- --hostname 127.0.0.1 --port 3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://127.0.0.1:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Admin
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Open `http://127.0.0.1:3000/admin`.
 
-## Learn More
+Default local accounts:
 
-To learn more about Next.js, take a look at the following resources:
+- Admin: `admin@aurawellness.local` / `admin123`
+- Manager: `manager@aurawellness.local` / `manager123`
+- Staff: `staff@aurawellness.local` / `staff123`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Set `ADMIN_SESSION_SECRET`, `ADMIN_PASSWORD`, `MANAGER_PASSWORD`, and `STAFF_PASSWORD` in `.env.local` before production use.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Dynamic Content
 
-## Deploy on Vercel
+The dashboard manages services, products, bookings, projects, blogs, offers, testimonials, gallery, team, contact leads, ecommerce orders, navigation links, footer links, and homepage settings. Public pages read the same content store, so dashboard edits are reflected across the site.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Production Database
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The local app runs without MySQL by using `data/cms.json`. For production, use `database/mysql-schema.sql` as the relational structure and replace `src/lib/store.ts` with a MySQL-backed repository using the same `CMSData` shape.
+
+## Checks
+
+```bash
+npm run lint
+npm run build
+```
