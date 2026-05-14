@@ -226,6 +226,417 @@ function Overview({ data, stats }: { data: CMSData; stats: Stats }) {
   );
 }
 
+type EditableItem = Record<string, unknown> & { id?: string };
+
+type FieldType =
+  | "text"
+  | "textarea"
+  | "number"
+  | "checkbox"
+  | "select"
+  | "date"
+  | "time"
+  | "datetime"
+  | "email"
+  | "url"
+  | "array"
+  | "seo"
+  | "reviews"
+  | "orderItems";
+
+type EditorField = {
+  key: string;
+  label: string;
+  type: FieldType;
+  options?: string[];
+  placeholder?: string;
+  full?: boolean;
+};
+
+const inputClass =
+  "rounded-lg border border-charcoal/10 bg-white px-4 py-3 text-sm text-charcoal outline-none transition focus:border-champagne focus:ring-4 focus:ring-champagne/15";
+
+const textareaClass =
+  "min-h-28 rounded-lg border border-charcoal/10 bg-white px-4 py-3 text-sm leading-6 text-charcoal outline-none transition focus:border-champagne focus:ring-4 focus:ring-champagne/15";
+
+const serviceCategories = ["Massage", "Facial", "Hair Spa", "Body Therapy", "Skin Care", "Ayurveda", "Wellness"];
+const productCategories = ["Skin Care", "Body Care", "Hair Care", "Wellness", "Aromatherapy"];
+const projectCategories = ["Spa Interiors", "Bridal Makeover", "Wellness Programs"];
+const packageCategories = ["Monthly", "Bridal", "Couple Spa", "Membership"];
+
+const editorSchemas: Record<CollectionName, EditorField[]> = {
+  services: [
+    { key: "title", label: "Service Name", type: "text" },
+    { key: "slug", label: "SEO URL Slug", type: "text" },
+    { key: "category", label: "Category", type: "select", options: serviceCategories },
+    { key: "price", label: "Price", type: "number" },
+    { key: "duration", label: "Duration", type: "text" },
+    { key: "featured", label: "Featured Service", type: "checkbox" },
+    { key: "excerpt", label: "Short Summary", type: "textarea", full: true },
+    { key: "description", label: "Full Description", type: "textarea", full: true },
+    { key: "image", label: "Main Image URL", type: "url", full: true },
+    { key: "benefits", label: "Benefits", type: "array", full: true },
+    { key: "gallery", label: "Gallery Image URLs", type: "array", full: true },
+    { key: "seo", label: "SEO", type: "seo", full: true },
+  ],
+  products: [
+    { key: "title", label: "Product Name", type: "text" },
+    { key: "slug", label: "SEO URL Slug", type: "text" },
+    { key: "category", label: "Category", type: "select", options: productCategories },
+    { key: "price", label: "Price", type: "number" },
+    { key: "compareAtPrice", label: "Compare At Price", type: "number" },
+    { key: "inventory", label: "Inventory", type: "number" },
+    { key: "popularity", label: "Popularity Score", type: "number" },
+    { key: "featured", label: "Best Seller", type: "checkbox" },
+    { key: "excerpt", label: "Short Summary", type: "textarea", full: true },
+    { key: "description", label: "Description", type: "textarea", full: true },
+    { key: "image", label: "Main Image URL", type: "url", full: true },
+    { key: "ingredients", label: "Ingredients", type: "array", full: true },
+    { key: "benefits", label: "Benefits", type: "array", full: true },
+    { key: "gallery", label: "Gallery Image URLs", type: "array", full: true },
+    { key: "reviews", label: "Reviews", type: "reviews", full: true },
+    { key: "seo", label: "SEO", type: "seo", full: true },
+  ],
+  projects: [
+    { key: "title", label: "Project Name", type: "text" },
+    { key: "slug", label: "SEO URL Slug", type: "text" },
+    { key: "category", label: "Category", type: "select", options: projectCategories },
+    { key: "client", label: "Client", type: "text" },
+    { key: "featured", label: "Featured Project", type: "checkbox" },
+    { key: "excerpt", label: "Short Summary", type: "textarea", full: true },
+    { key: "story", label: "Client Story", type: "textarea", full: true },
+    { key: "result", label: "Result", type: "textarea", full: true },
+    { key: "servicesUsed", label: "Service Slugs Used", type: "array", full: true },
+    { key: "image", label: "Main Image URL", type: "url", full: true },
+    { key: "gallery", label: "Gallery Image URLs", type: "array", full: true },
+    { key: "seo", label: "SEO", type: "seo", full: true },
+  ],
+  packages: [
+    { key: "title", label: "Package Name", type: "text" },
+    { key: "slug", label: "SEO URL Slug", type: "text" },
+    { key: "category", label: "Category", type: "select", options: packageCategories },
+    { key: "price", label: "Price", type: "number" },
+    { key: "cadence", label: "Cadence", type: "text" },
+    { key: "featured", label: "Featured Package", type: "checkbox" },
+    { key: "excerpt", label: "Short Summary", type: "textarea", full: true },
+    { key: "inclusions", label: "Inclusions", type: "array", full: true },
+    { key: "image", label: "Image URL", type: "url", full: true },
+  ],
+  offers: [
+    { key: "title", label: "Offer Title", type: "text" },
+    { key: "slug", label: "SEO URL Slug", type: "text" },
+    { key: "discount", label: "Discount", type: "text" },
+    { key: "endsAt", label: "Ends At", type: "datetime" },
+    { key: "targetLabel", label: "CTA Label", type: "text" },
+    { key: "targetHref", label: "CTA Link", type: "text" },
+    { key: "active", label: "Active Offer", type: "checkbox" },
+    { key: "excerpt", label: "Short Summary", type: "textarea", full: true },
+    { key: "image", label: "Image URL", type: "url", full: true },
+  ],
+  testimonials: [
+    { key: "name", label: "Client Name", type: "text" },
+    { key: "service", label: "Service", type: "text" },
+    { key: "rating", label: "Rating", type: "number" },
+    { key: "featured", label: "Featured Review", type: "checkbox" },
+    { key: "quote", label: "Review Quote", type: "textarea", full: true },
+    { key: "image", label: "Client Image URL", type: "url", full: true },
+    { key: "videoUrl", label: "Video URL", type: "url", full: true },
+  ],
+  gallery: [
+    { key: "title", label: "Media Title", type: "text" },
+    { key: "category", label: "Category", type: "text" },
+    { key: "type", label: "Media Type", type: "select", options: ["image", "video"] },
+    { key: "relatedLabel", label: "Related Link Label", type: "text" },
+    { key: "relatedHref", label: "Related Link URL", type: "text" },
+    { key: "image", label: "Image URL", type: "url", full: true },
+    { key: "videoUrl", label: "Video URL", type: "url", full: true },
+  ],
+  team: [
+    { key: "name", label: "Name", type: "text" },
+    { key: "role", label: "Role", type: "text" },
+    { key: "experience", label: "Experience", type: "text" },
+    { key: "bookingHref", label: "Booking Link", type: "text" },
+    { key: "specialization", label: "Specialization", type: "textarea", full: true },
+    { key: "bio", label: "Bio", type: "textarea", full: true },
+    { key: "image", label: "Photo URL", type: "url", full: true },
+  ],
+  blogs: [
+    { key: "title", label: "Blog Title", type: "text" },
+    { key: "slug", label: "SEO URL Slug", type: "text" },
+    { key: "category", label: "Category", type: "text" },
+    { key: "author", label: "Author", type: "text" },
+    { key: "publishedAt", label: "Published Date", type: "date" },
+    { key: "excerpt", label: "Excerpt", type: "textarea", full: true },
+    { key: "content", label: "Article Content", type: "textarea", full: true },
+    { key: "image", label: "Featured Image URL", type: "url", full: true },
+    { key: "relatedServices", label: "Related Service Slugs", type: "array", full: true },
+    { key: "relatedProducts", label: "Related Product Slugs", type: "array", full: true },
+    { key: "seo", label: "SEO", type: "seo", full: true },
+  ],
+  bookings: [
+    { key: "serviceTitle", label: "Service Title", type: "text" },
+    { key: "serviceSlug", label: "Service Slug", type: "text" },
+    { key: "date", label: "Date", type: "date" },
+    { key: "time", label: "Time", type: "time" },
+    { key: "name", label: "Customer Name", type: "text" },
+    { key: "email", label: "Email", type: "email" },
+    { key: "phone", label: "Phone", type: "text" },
+    { key: "payment", label: "Payment", type: "select", options: ["pay_at_spa", "online", "deposit"] },
+    { key: "status", label: "Booking Status", type: "select", options: ["pending", "confirmed", "completed", "cancelled"] },
+    { key: "total", label: "Total", type: "number" },
+    { key: "notes", label: "Notes", type: "textarea", full: true },
+    { key: "createdAt", label: "Created At", type: "datetime" },
+  ],
+  orders: [
+    { key: "customerName", label: "Customer Name", type: "text" },
+    { key: "email", label: "Email", type: "email" },
+    { key: "phone", label: "Phone", type: "text" },
+    { key: "payment", label: "Payment", type: "select", options: ["cod", "card", "upi"] },
+    { key: "status", label: "Order Status", type: "select", options: ["pending", "paid", "shipped", "delivered"] },
+    { key: "total", label: "Total", type: "number" },
+    { key: "address", label: "Address", type: "textarea", full: true },
+    { key: "items", label: "Order Items", type: "orderItems", full: true },
+    { key: "createdAt", label: "Created At", type: "datetime" },
+  ],
+  leads: [
+    { key: "name", label: "Lead Name", type: "text" },
+    { key: "email", label: "Email", type: "email" },
+    { key: "phone", label: "Phone", type: "text" },
+    { key: "subject", label: "Subject", type: "text" },
+    { key: "source", label: "Source", type: "text" },
+    { key: "status", label: "Lead Status", type: "select", options: ["new", "contacted", "won", "lost"] },
+    { key: "message", label: "Message", type: "textarea", full: true },
+    { key: "createdAt", label: "Created At", type: "datetime" },
+  ],
+};
+
+function asStringArray(value: unknown) {
+  return Array.isArray(value) ? value.map((item) => String(item ?? "")) : [];
+}
+
+function toDateTimeLocal(value: unknown) {
+  if (!value) return "";
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) return String(value).slice(0, 16);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
+}
+
+function fromDateTimeLocal(value: string) {
+  return value ? new Date(value).toISOString() : "";
+}
+
+function StringListEditor({
+  label,
+  value,
+  onChange,
+  placeholder = "Add item",
+}: {
+  label: string;
+  value: string[];
+  onChange: (value: string[]) => void;
+  placeholder?: string;
+}) {
+  const update = (index: number, nextValue: string) => {
+    onChange(value.map((item, itemIndex) => (itemIndex === index ? nextValue : item)));
+  };
+
+  return (
+    <div className="rounded-lg border border-charcoal/10 bg-white/70 p-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-bold text-charcoal">{label}</p>
+        <button type="button" onClick={() => onChange([...value, ""])} className="outline-button px-3 py-2 text-xs font-semibold">
+          Add
+        </button>
+      </div>
+      <div className="grid gap-2">
+        {value.length === 0 && <p className="rounded-lg bg-porcelain px-4 py-3 text-sm text-charcoal/50">No items yet.</p>}
+        {value.map((item, index) => (
+          <div key={`${label}-${index}`} className="grid gap-2 sm:grid-cols-[1fr_auto]">
+            <input value={item} onChange={(event) => update(index, event.target.value)} placeholder={placeholder} className={inputClass} />
+            <button type="button" onClick={() => onChange(value.filter((_, itemIndex) => itemIndex !== index))} className="rounded-full border border-rose/20 bg-rose/10 px-4 py-2 text-sm font-semibold text-rose">
+              Remove
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SeoEditor({ value, onChange }: { value: unknown; onChange: (value: Record<string, string>) => void }) {
+  const seo = typeof value === "object" && value ? (value as Record<string, string>) : { title: "", description: "" };
+  return (
+    <div className="rounded-lg border border-charcoal/10 bg-white/70 p-4">
+      <p className="mb-3 text-sm font-bold text-charcoal">SEO</p>
+      <div className="grid gap-4 md:grid-cols-2">
+        <label className="grid gap-2 text-sm font-semibold text-charcoal">
+          Meta Title
+          <input value={seo.title ?? ""} onChange={(event) => onChange({ ...seo, title: event.target.value })} className={inputClass} />
+        </label>
+        <label className="grid gap-2 text-sm font-semibold text-charcoal">
+          Meta Description
+          <textarea value={seo.description ?? ""} onChange={(event) => onChange({ ...seo, description: event.target.value })} className={textareaClass} />
+        </label>
+      </div>
+    </div>
+  );
+}
+
+function ReviewsEditor({ value, onChange }: { value: unknown; onChange: (value: Array<Record<string, unknown>>) => void }) {
+  const reviews = Array.isArray(value) ? (value as Array<Record<string, unknown>>) : [];
+  const update = (index: number, patch: Record<string, unknown>) => {
+    onChange(reviews.map((review, reviewIndex) => (reviewIndex === index ? { ...review, ...patch } : review)));
+  };
+
+  return (
+    <div className="rounded-lg border border-charcoal/10 bg-white/70 p-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-bold text-charcoal">Reviews</p>
+        <button type="button" onClick={() => onChange([...reviews, { name: "", rating: 5, quote: "" }])} className="outline-button px-3 py-2 text-xs font-semibold">
+          Add Review
+        </button>
+      </div>
+      <div className="grid gap-3">
+        {reviews.map((review, index) => (
+          <div key={`review-${index}`} className="rounded-lg border border-charcoal/10 bg-porcelain p-4">
+            <div className="grid gap-3 md:grid-cols-[1fr_110px_auto]">
+              <input value={String(review.name ?? "")} onChange={(event) => update(index, { name: event.target.value })} placeholder="Reviewer name" className={inputClass} />
+              <input value={String(review.rating ?? 5)} onChange={(event) => update(index, { rating: Number(event.target.value) })} type="number" min={1} max={5} className={inputClass} />
+              <button type="button" onClick={() => onChange(reviews.filter((_, reviewIndex) => reviewIndex !== index))} className="rounded-full border border-rose/20 bg-rose/10 px-4 py-2 text-sm font-semibold text-rose">
+                Remove
+              </button>
+            </div>
+            <textarea value={String(review.quote ?? "")} onChange={(event) => update(index, { quote: event.target.value })} placeholder="Review quote" className={`${textareaClass} mt-3 w-full`} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function OrderItemsEditor({ value, onChange }: { value: unknown; onChange: (value: Array<Record<string, unknown>>) => void }) {
+  const orderItems = Array.isArray(value) ? (value as Array<Record<string, unknown>>) : [];
+  const update = (index: number, patch: Record<string, unknown>) => {
+    onChange(orderItems.map((item, itemIndex) => (itemIndex === index ? { ...item, ...patch } : item)));
+  };
+
+  return (
+    <div className="rounded-lg border border-charcoal/10 bg-white/70 p-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-bold text-charcoal">Order Items</p>
+        <button type="button" onClick={() => onChange([...orderItems, { productSlug: "", title: "", quantity: 1, price: 0 }])} className="outline-button px-3 py-2 text-xs font-semibold">
+          Add Item
+        </button>
+      </div>
+      <div className="grid gap-3">
+        {orderItems.map((item, index) => (
+          <div key={`order-item-${index}`} className="grid gap-3 rounded-lg border border-charcoal/10 bg-porcelain p-4 lg:grid-cols-[1fr_1fr_100px_120px_auto]">
+            <input value={String(item.productSlug ?? "")} onChange={(event) => update(index, { productSlug: event.target.value })} placeholder="Product slug" className={inputClass} />
+            <input value={String(item.title ?? "")} onChange={(event) => update(index, { title: event.target.value })} placeholder="Product title" className={inputClass} />
+            <input value={String(item.quantity ?? 1)} onChange={(event) => update(index, { quantity: Number(event.target.value) })} type="number" min={1} className={inputClass} />
+            <input value={String(item.price ?? 0)} onChange={(event) => update(index, { price: Number(event.target.value) })} type="number" min={0} className={inputClass} />
+            <button type="button" onClick={() => onChange(orderItems.filter((_, itemIndex) => itemIndex !== index))} className="rounded-full border border-rose/20 bg-rose/10 px-4 py-2 text-sm font-semibold text-rose">
+              Remove
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FieldEditor({
+  field,
+  value,
+  onChange,
+}: {
+  field: EditorField;
+  value: unknown;
+  onChange: (value: unknown) => void;
+}) {
+  if (field.type === "checkbox") {
+    return (
+      <label className="flex min-h-[72px] items-center justify-between gap-4 rounded-lg border border-charcoal/10 bg-white px-4 py-3 text-sm font-semibold text-charcoal">
+        <span>{field.label}</span>
+        <input type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(event.target.checked)} className="size-5 accent-gold-deep" />
+      </label>
+    );
+  }
+
+  if (field.type === "textarea") {
+    return (
+      <label className="grid gap-2 text-sm font-semibold text-charcoal">
+        {field.label}
+        <textarea value={String(value ?? "")} onChange={(event) => onChange(event.target.value)} placeholder={field.placeholder} className={textareaClass} />
+      </label>
+    );
+  }
+
+  if (field.type === "select") {
+    const options = field.options ?? [];
+    return (
+      <label className="grid gap-2 text-sm font-semibold text-charcoal">
+        {field.label}
+        <select value={String(value ?? options[0] ?? "")} onChange={(event) => onChange(event.target.value)} className={inputClass}>
+          {options.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      </label>
+    );
+  }
+
+  if (field.type === "array") {
+    return <StringListEditor label={field.label} value={asStringArray(value)} onChange={onChange} />;
+  }
+
+  if (field.type === "seo") {
+    return <SeoEditor value={value} onChange={onChange} />;
+  }
+
+  if (field.type === "reviews") {
+    return <ReviewsEditor value={value} onChange={onChange} />;
+  }
+
+  if (field.type === "orderItems") {
+    return <OrderItemsEditor value={value} onChange={onChange} />;
+  }
+
+  const htmlType =
+    field.type === "number" || field.type === "date" || field.type === "time" || field.type === "email" || field.type === "url"
+      ? field.type
+      : field.type === "datetime"
+        ? "datetime-local"
+        : "text";
+  const inputValue = field.type === "datetime" ? toDateTimeLocal(value) : String(value ?? "");
+
+  return (
+    <label className="grid gap-2 text-sm font-semibold text-charcoal">
+      {field.label}
+      <input
+        type={htmlType}
+        value={inputValue}
+        onChange={(event) => {
+          if (field.type === "number") {
+            onChange(event.target.value === "" ? undefined : Number(event.target.value));
+            return;
+          }
+          if (field.type === "datetime") {
+            onChange(fromDateTimeLocal(event.target.value));
+            return;
+          }
+          onChange(event.target.value);
+        }}
+        placeholder={field.placeholder}
+        className={inputClass}
+      />
+    </label>
+  );
+}
+
 function CollectionManager({
   collection,
   data,
@@ -238,40 +649,36 @@ function CollectionManager({
   onReload: () => Promise<void>;
 }) {
   const items = data[collection] as CMSItem[];
-  const [editing, setEditing] = useState<CMSItem | null>(null);
-  const [json, setJson] = useState("");
+  const [editing, setEditing] = useState<EditableItem | null>(null);
   const [error, setError] = useState("");
   const canDelete = role === "Admin" || (role === "Manager" && !["orders", "leads"].includes(collection));
   const canWrite = role === "Admin" || (role === "Manager" && collection !== "orders") || (role === "Staff" && ["bookings", "leads"].includes(collection));
 
   const startCreate = () => {
-    const item = templateFor(collection) as CMSItem;
+    const item = templateFor(collection) as EditableItem;
     setEditing(item);
-    setJson(JSON.stringify(item, null, 2));
     setError("");
   };
 
   const startEdit = (item: CMSItem) => {
-    setEditing(item);
-    setJson(JSON.stringify(item, null, 2));
+    setEditing({ ...(item as unknown as EditableItem) });
     setError("");
   };
 
   const saveItem = async () => {
     if (!editing) return;
     try {
-      const parsed = JSON.parse(json) as Record<string, unknown>;
-      const id = "id" in editing ? String(editing.id) : "";
+      const id = editing.id ? String(editing.id) : "";
       const response = await fetch(id ? `/api/content/${collection}/${id}` : `/api/content/${collection}`, {
         method: id ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(parsed),
+        body: JSON.stringify(editing),
       });
       if (!response.ok) throw new Error((await response.json()).error ?? "Unable to save");
       setEditing(null);
       await onReload();
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Invalid JSON");
+      setError(saveError instanceof Error ? saveError.message : "Unable to save");
     }
   };
 
@@ -285,9 +692,7 @@ function CollectionManager({
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      const parsed = JSON.parse(json) as Record<string, unknown>;
-      parsed.image = reader.result;
-      setJson(JSON.stringify(parsed, null, 2));
+      setEditing((current) => (current ? { ...current, image: reader.result } : current));
     };
     reader.readAsDataURL(file);
   };
@@ -353,18 +758,37 @@ function CollectionManager({
 
       {editing && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-charcoal/72 p-4 backdrop-blur-sm">
-          <div className="max-h-[90vh] w-full max-w-4xl overflow-auto rounded-lg bg-porcelain p-6 shadow-2xl">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <h3 className="font-serif text-4xl text-charcoal">{editing.id ? "Edit Item" : "New Item"}</h3>
+          <div className="max-h-[92vh] w-full max-w-6xl overflow-auto rounded-lg bg-porcelain p-6 shadow-2xl">
+            <div className="mb-6 flex flex-wrap items-start justify-between gap-3 border-b border-charcoal/10 pb-5">
+              <div>
+                <p className="text-sm font-semibold text-charcoal/56">{collectionLabels[collection]}</p>
+                <h3 className="font-serif text-4xl text-charcoal">{editing.id ? "Edit Content" : "New Content"}</h3>
+              </div>
               <label className="outline-button inline-flex cursor-pointer items-center gap-2 px-4 py-2 text-sm font-semibold">
                 <ImagePlus size={16} />
                 Upload image
                 <input type="file" accept="image/*" onChange={uploadImage} className="hidden" />
               </label>
             </div>
-            <textarea value={json} onChange={(event) => setJson(event.target.value)} rows={20} className="w-full rounded-lg border border-charcoal/10 bg-white p-4 font-mono text-sm outline-none focus:border-champagne" />
+            {"image" in editing && typeof editing.image === "string" && editing.image && (
+              <div className="mb-6 overflow-hidden rounded-lg border border-charcoal/10 bg-white">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={editing.image} alt="Current content preview" className="h-48 w-full object-cover" />
+              </div>
+            )}
+            <div className="grid gap-5 md:grid-cols-2">
+              {editorSchemas[collection].map((field) => (
+                <div key={field.key} className={field.full ? "md:col-span-2" : undefined}>
+                  <FieldEditor
+                    field={field}
+                    value={editing[field.key]}
+                    onChange={(value) => setEditing((current) => (current ? { ...current, [field.key]: value } : current))}
+                  />
+                </div>
+              ))}
+            </div>
             {error && <p className="mt-3 rounded-lg bg-rose/12 px-4 py-3 text-sm font-semibold text-rose">{error}</p>}
-            <div className="mt-5 flex flex-wrap justify-end gap-3">
+            <div className="sticky bottom-0 -mx-6 mt-6 flex flex-wrap justify-end gap-3 border-t border-charcoal/10 bg-porcelain/95 px-6 py-4 backdrop-blur">
               <button type="button" onClick={() => setEditing(null)} className="outline-button px-5 py-3 text-sm font-semibold">
                 Cancel
               </button>
@@ -379,25 +803,69 @@ function CollectionManager({
   );
 }
 
+function NavLinksEditor({
+  title,
+  value,
+  onChange,
+}: {
+  title: string;
+  value: Array<{ id: string; label: string; href: string }>;
+  onChange: (value: Array<{ id: string; label: string; href: string }>) => void;
+}) {
+  const update = (index: number, patch: Partial<{ id: string; label: string; href: string }>) => {
+    onChange(value.map((link, linkIndex) => (linkIndex === index ? { ...link, ...patch } : link)));
+  };
+
+  return (
+    <div className="rounded-lg border border-charcoal/10 bg-white p-5 shadow-sm">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h3 className="font-serif text-3xl text-charcoal">{title}</h3>
+        <button
+          type="button"
+          onClick={() => onChange([...value, { id: `link-${Date.now()}`, label: "New Link", href: "/" }])}
+          className="outline-button px-4 py-2 text-sm font-semibold"
+        >
+          Add Link
+        </button>
+      </div>
+      <div className="grid gap-3">
+        {value.map((link, index) => (
+          <div key={link.id} className="grid gap-3 rounded-lg border border-charcoal/10 bg-porcelain p-4 lg:grid-cols-[1fr_1fr_1.4fr_auto]">
+            <input value={link.id} onChange={(event) => update(index, { id: event.target.value })} placeholder="ID" className={inputClass} />
+            <input value={link.label} onChange={(event) => update(index, { label: event.target.value })} placeholder="Label" className={inputClass} />
+            <input value={link.href} onChange={(event) => update(index, { href: event.target.value })} placeholder="URL" className={inputClass} />
+            <button type="button" onClick={() => onChange(value.filter((_, linkIndex) => linkIndex !== index))} className="rounded-full border border-rose/20 bg-rose/10 px-4 py-2 text-sm font-semibold text-rose">
+              Remove
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SettingsManager({ settings, onReload }: { settings: SiteSettings; onReload: () => Promise<void> }) {
-  const [draft, setDraft] = useState(JSON.stringify(settings, null, 2));
+  const [draft, setDraft] = useState<SiteSettings>(settings);
   const [status, setStatus] = useState("");
 
   async function saveSettings() {
     try {
-      const parsed = JSON.parse(draft);
       const response = await fetch("/api/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(parsed),
+        body: JSON.stringify(draft),
       });
       if (!response.ok) throw new Error((await response.json()).error ?? "Unable to save settings");
       setStatus("Settings saved.");
       await onReload();
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Invalid JSON");
+      setStatus(error instanceof Error ? error.message : "Unable to save settings");
     }
   }
+
+  const setField = <Key extends keyof SiteSettings>(key: Key, value: SiteSettings[Key]) => {
+    setDraft((current) => ({ ...current, [key]: value }));
+  };
 
   return (
     <div className="grid gap-5">
@@ -405,8 +873,91 @@ function SettingsManager({ settings, onReload }: { settings: SiteSettings; onRel
         <p className="text-sm font-semibold text-charcoal/56">Site Settings</p>
         <h2 className="font-serif text-4xl text-charcoal">Header, Footer, Homepage</h2>
       </div>
-      <div className="rounded-lg border border-charcoal/10 bg-white p-5 shadow-sm">
-        <textarea value={draft} onChange={(event) => setDraft(event.target.value)} rows={28} className="w-full rounded-lg border border-charcoal/10 bg-porcelain p-4 font-mono text-sm outline-none focus:border-champagne" />
+      <div className="grid gap-5">
+        <section className="rounded-lg border border-charcoal/10 bg-white p-5 shadow-sm">
+          <h3 className="mb-4 font-serif text-3xl text-charcoal">Business Details</h3>
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="grid gap-2 text-sm font-semibold text-charcoal">
+              Site Name
+              <input value={draft.siteName} onChange={(event) => setField("siteName", event.target.value)} className={inputClass} />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-charcoal">
+              Email
+              <input type="email" value={draft.email} onChange={(event) => setField("email", event.target.value)} className={inputClass} />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-charcoal">
+              Phone
+              <input value={draft.phone} onChange={(event) => setField("phone", event.target.value)} className={inputClass} />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-charcoal">
+              WhatsApp URL
+              <input value={draft.whatsapp} onChange={(event) => setField("whatsapp", event.target.value)} className={inputClass} />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-charcoal md:col-span-2">
+              Tagline
+              <textarea value={draft.tagline} onChange={(event) => setField("tagline", event.target.value)} className={textareaClass} />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-charcoal md:col-span-2">
+              Address
+              <textarea value={draft.address} onChange={(event) => setField("address", event.target.value)} className={textareaClass} />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-charcoal md:col-span-2">
+              Google Map Embed URL
+              <input value={draft.mapEmbed} onChange={(event) => setField("mapEmbed", event.target.value)} className={inputClass} />
+            </label>
+          </div>
+        </section>
+
+        <section className="rounded-lg border border-charcoal/10 bg-white p-5 shadow-sm">
+          <h3 className="mb-4 font-serif text-3xl text-charcoal">Homepage Hero</h3>
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="grid gap-2 text-sm font-semibold text-charcoal">
+              Hero Title
+              <input value={draft.heroTitle} onChange={(event) => setField("heroTitle", event.target.value)} className={inputClass} />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-charcoal">
+              Announcement
+              <input value={draft.announcement} onChange={(event) => setField("announcement", event.target.value)} className={inputClass} />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-charcoal md:col-span-2">
+              Hero Subtitle
+              <textarea value={draft.heroSubtitle} onChange={(event) => setField("heroSubtitle", event.target.value)} className={textareaClass} />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-charcoal md:col-span-2">
+              Hero Image URL
+              <input value={draft.heroImage} onChange={(event) => setField("heroImage", event.target.value)} className={inputClass} />
+            </label>
+          </div>
+        </section>
+
+        <section className="rounded-lg border border-charcoal/10 bg-white p-5 shadow-sm">
+          <h3 className="mb-4 font-serif text-3xl text-charcoal">Homepage Sections</h3>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {Object.entries(draft.homepageSections).map(([key, value]) => (
+              <label key={key} className="flex items-center justify-between gap-3 rounded-lg border border-charcoal/10 bg-porcelain px-4 py-3 text-sm font-semibold capitalize text-charcoal">
+                {key.replace(/([A-Z])/g, " $1")}
+                <input
+                  type="checkbox"
+                  checked={value}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      homepageSections: { ...current.homepageSections, [key]: event.target.checked },
+                    }))
+                  }
+                  className="size-5 accent-gold-deep"
+                />
+              </label>
+            ))}
+          </div>
+        </section>
+
+        <NavLinksEditor title="Header Links" value={draft.headerLinks} onChange={(value) => setField("headerLinks", value)} />
+        <NavLinksEditor title="Footer Quick Links" value={draft.footerQuickLinks} onChange={(value) => setField("footerQuickLinks", value)} />
+        <NavLinksEditor title="Footer Service Links" value={draft.footerServiceLinks} onChange={(value) => setField("footerServiceLinks", value)} />
+        <NavLinksEditor title="Footer Support Links" value={draft.footerSupportLinks} onChange={(value) => setField("footerSupportLinks", value)} />
+        <NavLinksEditor title="Social Links" value={draft.socialLinks} onChange={(value) => setField("socialLinks", value)} />
+
         <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm font-semibold text-charcoal/56">{status}</p>
           <button type="button" onClick={saveSettings} className="gold-button inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold">
